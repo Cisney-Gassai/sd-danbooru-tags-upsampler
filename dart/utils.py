@@ -40,26 +40,28 @@ def get_random_seed():
 def get_upmsapling_seeds(
     p: StableDiffusionProcessing,
     num_seeds: int,
-    custom_seed: int,
+    unlink_seed: bool,
+    custom_seed: int
 ) -> list[int]:
-    if p.subseed_strength != 0:
-        subseed = int(p.all_subseeds[0])
+    if p.all_seeds is not None:
+        seed = int(p.all_seeds[0])
     else:
-        subseed = int(p.subseed)
+        seed = get_random_seed()
 
-    if subseed == -1:
-        subseed = get_random_seed()
-
-    if custom_seed != -1:
-        # if custom_seed is specified, use the same seeds for prompts
-        all_subseeds = [int(custom_seed)] * num_seeds
+    if unlink_seed:
+        if custom_seed != -1:
+            # if custom_seed is specified, use the same seeds for prompts
+            all_seeds = [int(custom_seed)] * num_seeds
+        else:
+            # increase randomness by adding images' seeds
+            all_seeds = [(get_random_seed() + seed + i) % SEED_MAX for i in range(num_seeds)]
     else:
-        # increase randomness by adding images' seeds
-        all_subseeds = [
-            (int(p.seed) + subseed + i) % SEED_MAX for i in range(num_seeds)
-        ]
+        if p.subseed_strength == 0:
+            all_seeds = [seed + i for i in range(num_seeds)]
+        else:
+            all_seeds = [seed] * num_seeds
 
-    return all_subseeds
+    return all_seeds
 
 
 def escape_webui_special_symbols(tags: list[str]) -> list[str]:

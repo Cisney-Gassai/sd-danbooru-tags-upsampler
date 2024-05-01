@@ -4,7 +4,8 @@ import logging
 import gradio as gr
 from transformers import set_seed
 
-from modules import script_callbacks
+from modules import script_callbacks, ui
+from modules.ui_components import ToolButton
 import modules.scripts as scripts
 from modules.scripts import basedir
 from modules.processing import (
@@ -129,8 +130,8 @@ class DartUpsampleScript(scripts.Script):
                             scale=4,
                             value=-1,
                         )
-                        seed_random_btn = gr.Button(value="Randomize")
-                        seed_shuffle_btn = gr.Button(value="Shuffle")
+                        seed_random_btn = ToolButton(ui.random_symbol, elem_id="seed_random", tooltip="Randomize")
+                        seed_shuffle_btn = ToolButton(ui.refresh_symbol, elem_id="seed_shuffle", tooltip="Shuffle")
 
                         def click_random_seed_btn():
                             return -1
@@ -145,6 +146,11 @@ class DartUpsampleScript(scripts.Script):
                         seed_shuffle_btn.click(
                             click_shuffle_seed_btn, outputs=[seed_num_input]
                         )
+
+                    unlink_seed_from_prompt = gr.Checkbox(
+                        label="Unlink seed from prompt",
+                        value=False
+                    )
 
                 with gr.Group():
                     process_timing_dropdown = gr.Dropdown(
@@ -258,6 +264,7 @@ class DartUpsampleScript(scripts.Script):
             tag_length_radio,
             ban_tags_textbox,
             seed_num_input,
+            unlink_seed_from_prompt,
             process_timing_dropdown,
             # generation config
             do_cfg_check,
@@ -276,6 +283,7 @@ class DartUpsampleScript(scripts.Script):
         tag_length: str,
         ban_tags: str,
         seed_num: int,
+        unlink_seed: bool,
         process_timing: str,
         # generation config
         do_cfg: bool,
@@ -333,6 +341,7 @@ class DartUpsampleScript(scripts.Script):
         upsampling_seeds = utils.get_upmsapling_seeds(
             p,
             num_images,
+            unlink_seed,
             custom_seed=seed_num,
         )
 
@@ -360,6 +369,7 @@ class DartUpsampleScript(scripts.Script):
         tag_length: str,
         ban_tags: str,
         seed_num: int,
+        unlink_seed: bool,
         process_timing: str,
         # generation config
         do_cfg: bool,
@@ -408,9 +418,11 @@ class DartUpsampleScript(scripts.Script):
                 length=TOTAL_TAG_LENGTH_TAGS[tag_length],
             )
 
+        num_images = p.n_iter * p.batch_size
         upsampling_seeds = utils.get_upmsapling_seeds(
             p,
-            num_seeds=1,  # only for the first prompt
+            num_images,
+            unlink_seed,
             custom_seed=seed_num,
         )
 
